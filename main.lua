@@ -821,7 +821,7 @@ function Window:CreateTab(config)
     local tab = setmetatable({
         Window = self,
         Config = config,
-        Button = button,
+        TabButton = button,
         Page = page,
         Icon = icon,
         Title = title,
@@ -832,7 +832,7 @@ function Window:CreateTab(config)
     function tab:SetActive(active)
         self.Active = active
         self.Page.Visible = active
-        tween(self.Button, TweenInfo.new(0.18, Enum.EasingStyle.Quint), {
+        tween(self.TabButton, TweenInfo.new(0.18, Enum.EasingStyle.Quint), {
             BackgroundColor3 = active and theme.Surface or theme.SurfaceAlt,
         })
         tween(self.Icon, TweenInfo.new(0.18, Enum.EasingStyle.Quint), {
@@ -1666,6 +1666,7 @@ end
 BloomUI.Themes.Bloom = cloneTheme(DEFAULT_THEME)
 
 return BloomUI
+
 
 
 
