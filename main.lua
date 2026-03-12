@@ -29,6 +29,7 @@ local DEFAULT_WINDOW = {
     Size = UDim2.fromOffset(760, 500),
     ToggleKey = Enum.KeyCode.RightControl,
     Theme = nil,
+    ConfigFolder = "BloomUI",
 }
 
 local function cloneTheme(theme)
@@ -144,8 +145,8 @@ local function clampSize(size)
     local camera = workspace.CurrentCamera
     local viewport = camera and camera.ViewportSize or Vector2.new(1280, 720)
     return UDim2.fromOffset(
-        math.clamp(size.X.Offset, 500, math.floor(viewport.X * 0.92)),
-        math.clamp(size.Y.Offset, 360, math.floor(viewport.Y * 0.9))
+        math.clamp(size.X.Offset, 360, math.floor(viewport.X * 0.96)),
+        math.clamp(size.Y.Offset, 320, math.floor(viewport.Y * 0.94))
     )
 end
 
@@ -168,6 +169,71 @@ local function setFlag(window, config, value)
     if config.Flag then
         window.Flags[config.Flag] = value
     end
+end
+
+local function registerSetter(window, config, setter)
+    if config.Flag then
+        window.FlagSetters[config.Flag] = setter
+    end
+end
+
+local function getPrecision(step)
+    local decimal = tostring(step or 1):match("%.(%d+)")
+    return decimal and #decimal or 0
+end
+
+local function roundToStep(value, minValue, step)
+    step = tonumber(step) or 1
+    if step <= 0 then
+        return value
+    end
+
+    local steps = math.floor(((value - minValue) / step) + 0.5)
+    return minValue + (steps * step)
+end
+
+local function formatNumber(value, step, suffix)
+    local precision = getPrecision(step)
+    local template = precision > 0 and ("%." .. precision .. "f") or "%d"
+    local text = precision > 0 and string.format(template, value) or string.format(template, math.floor(value + 0.5))
+    if suffix and suffix ~= "" then
+        text = text .. tostring(suffix)
+    end
+    return text
+end
+
+local function resolveKeyCode(value)
+    if typeof(value) == "EnumItem" and value.EnumType == Enum.KeyCode then
+        return value
+    end
+
+    if type(value) == "string" and Enum.KeyCode[value] then
+        return Enum.KeyCode[value]
+    end
+
+    return nil
+end
+
+local function sanitizePathPart(value)
+    return tostring(value or "default")
+        :gsub("[<>:\"/\\|%?%*]", "_")
+        :gsub("%s+", "_")
+end
+
+local function ensureFolder(path)
+    if type(makefolder) ~= "function" then
+        return false
+    end
+
+    if type(isfolder) == "function" then
+        if not isfolder(path) then
+            pcall(makefolder, path)
+        end
+    else
+        pcall(makefolder, path)
+    end
+
+    return true
 end
 
 local function makeCard(tab, config)
@@ -277,10 +343,13 @@ local function makeCard(tab, config)
         Tab = tab,
         Config = config,
         Card = card,
+        TitleWrap = wrap,
+        TitleLayout = list,
         TitleLabel = title,
         DescLabel = desc,
         LockOverlay = overlay,
         LockText = lockText,
+        BaseHeight = config.Desc and config.Desc ~= "" and 82 or 60,
         Locked = false,
     }, Element)
 end
@@ -315,6 +384,14 @@ function Element:Unlock()
     return self:SetLockedState(false)
 end
 
+function Element:SetHeight(height)
+    self.Card.Size = UDim2.new(1, 0, 0, height)
+    if self.TitleWrap then
+        self.TitleWrap.Size = UDim2.new(1, -170, 0, math.min(height, self.BaseHeight or height))
+    end
+    return self
+end
+
 function BloomUI:CreateWindow(config)
     config = config or {}
     local resolved = {}
@@ -330,6 +407,11 @@ function BloomUI:CreateWindow(config)
         theme = self.Themes[theme]
     end
     theme = cloneTheme(theme)
+
+    local viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
+    local compactMode = viewport.X < 900
+    local sidebarWidth = compactMode and 186 or 214
+    local contentInset = sidebarWidth + 14
 
     local screenGui = create("ScreenGui", {
         Name = "BloomUI_" .. HttpService:GenerateGUID(false),
@@ -398,7 +480,7 @@ function BloomUI:CreateWindow(config)
     local sidebar = create("Frame", {
         BackgroundColor3 = theme.Panel,
         BorderSizePixel = 0,
-        Size = UDim2.new(0, 214, 1, 0),
+        Size = UDim2.new(0, sidebarWidth, 1, 0),
     })
     sidebar.Parent = root
     corner(sidebar, 26)
@@ -466,8 +548,8 @@ function BloomUI:CreateWindow(config)
     local content = create("Frame", {
         BackgroundColor3 = theme.Panel,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 228, 0, 0),
-        Size = UDim2.new(1, -228, 1, 0),
+        Position = UDim2.new(0, contentInset, 0, 0),
+        Size = UDim2.new(1, -contentInset, 1, 0),
     })
     content.Parent = root
     corner(content, 26)
@@ -573,6 +655,7 @@ function BloomUI:CreateWindow(config)
         ShellScale = shellScale,
         NotificationHost = notifyHost,
         Flags = {},
+        FlagSetters = {},
         Tabs = {},
         Visible = true,
     }, Window)
@@ -915,7 +998,7 @@ function Tab:Toggle(config)
     knob.Parent = rail
     corner(knob, 13)
 
-    local function apply(nextValue)
+    local function apply(nextValue, silent)
         value = nextValue == true
         setFlag(self.Window, config, value)
         tween(rail, TweenInfo.new(0.18, Enum.EasingStyle.Quint), {
@@ -925,7 +1008,7 @@ function Tab:Toggle(config)
             BackgroundColor3 = value and theme.Background or theme.Text,
             Position = value and UDim2.new(1, -30, 0.5, -13) or UDim2.new(0, 4, 0.5, -13),
         })
-        if config.Callback then
+        if not silent and config.Callback then
             task.spawn(config.Callback, value)
         end
     end
@@ -940,9 +1023,12 @@ function Tab:Toggle(config)
     element.GetValue = function()
         return value
     end
-    element.SetValue = function(_, nextValue)
-        apply(nextValue)
+    element.SetValue = function(_, nextValue, silent)
+        apply(nextValue, silent)
     end
+    registerSetter(self.Window, config, function(nextValue, silent)
+        element:SetValue(nextValue, silent)
+    end)
     element.Card.Parent = self.Page
     element.LockOverlay.Parent = nil
     element.LockOverlay.Parent = element.Card
@@ -986,23 +1072,29 @@ function Tab:Input(config)
     })
     box.Parent = wrap
 
-    box.FocusLost:Connect(function(enterPressed)
-        value = box.Text
+    local function apply(nextValue, silent, enterPressed)
+        value = tostring(nextValue or "")
+        box.Text = value
         setFlag(self.Window, config, value)
-        if config.Callback then
+        if not silent and config.Callback then
             task.spawn(config.Callback, value, enterPressed)
         end
+    end
+
+    box.FocusLost:Connect(function(enterPressed)
+        apply(box.Text, false, enterPressed)
     end)
 
     element.InputBox = box
     element.GetValue = function()
         return value
     end
-    element.SetValue = function(_, nextValue)
-        value = tostring(nextValue or "")
-        box.Text = value
-        setFlag(self.Window, config, value)
+    element.SetValue = function(_, nextValue, silent)
+        apply(nextValue, silent)
     end
+    registerSetter(self.Window, config, function(nextValue, silent)
+        element:SetValue(nextValue, silent)
+    end)
     element.Card.Parent = self.Page
     element.LockOverlay.Parent = nil
     element.LockOverlay.Parent = element.Card
@@ -1010,12 +1102,464 @@ function Tab:Input(config)
     return element
 end
 
+function Tab:Slider(config)
+    config = config or {}
+    local theme = self.Window.Theme
+    local minValue = tonumber(config.Min) or 0
+    local maxValue = tonumber(config.Max) or 100
+    local step = tonumber(config.Step) or 1
+    local value = tonumber(config.Value)
+
+    if not value then
+        value = minValue
+    end
+
+    value = math.clamp(roundToStep(value, minValue, step), minValue, maxValue)
+    registerFlag(self.Window, config, value)
+    value = tonumber(config.Flag and self.Window.Flags[config.Flag] or value) or value
+    value = math.clamp(roundToStep(value, minValue, step), minValue, maxValue)
+
+    local element = makeCard(self, config)
+    local baseHeight = config.Desc and config.Desc ~= "" and 96 or 82
+    element.BaseHeight = baseHeight
+    element.Card.ClipsDescendants = true
+    element:SetHeight(baseHeight)
+    element.TitleWrap.Size = UDim2.new(1, -170, 0, baseHeight - 20)
+
+    local valuePill = create("TextLabel", {
+        AnchorPoint = Vector2.new(1, 0),
+        BackgroundColor3 = theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        Position = UDim2.new(1, -16, 0, 14),
+        Size = UDim2.fromOffset(92, 32),
+        Font = Enum.Font.GothamBold,
+        Text = "",
+        TextColor3 = theme.AccentSoft,
+        TextSize = 12,
+    })
+    valuePill.Parent = element.Card
+    corner(valuePill, 16)
+    stroke(valuePill, theme.Outline, 0.18)
+
+    local rail = create("Frame", {
+        BackgroundColor3 = theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 18, 1, -22),
+        Size = UDim2.new(1, -36, 0, 6),
+    })
+    rail.Parent = element.Card
+    corner(rail, 3)
+
+    local fill = create("Frame", {
+        BackgroundColor3 = theme.Accent,
+        BorderSizePixel = 0,
+        Size = UDim2.new(0, 0, 1, 0),
+    })
+    fill.Parent = rail
+    corner(fill, 3)
+    gradient(fill, theme.AccentSoft, theme.Accent, 0)
+
+    local knob = create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = theme.Text,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 0.5, 0),
+        Size = UDim2.fromOffset(14, 14),
+    })
+    knob.Parent = rail
+    corner(knob, 7)
+
+    local dragButton = create("TextButton", {
+        AutoButtonColor = false,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Size = UDim2.fromScale(1, 1),
+        Text = "",
+    })
+    dragButton.Parent = element.Card
+
+    local dragging = false
+
+    local function apply(nextValue, silent)
+        value = math.clamp(roundToStep(tonumber(nextValue) or minValue, minValue, step), minValue, maxValue)
+        setFlag(self.Window, config, value)
+
+        local alpha = maxValue == minValue and 0 or ((value - minValue) / (maxValue - minValue))
+        fill.Size = UDim2.new(alpha, 0, 1, 0)
+        knob.Position = UDim2.new(alpha, 0, 0.5, 0)
+        valuePill.Text = formatNumber(value, step, config.Suffix)
+
+        if not silent and config.Callback then
+            task.spawn(config.Callback, value)
+        end
+    end
+
+    local function updateFromInput(inputPosition)
+        local alpha = math.clamp((inputPosition.X - rail.AbsolutePosition.X) / rail.AbsoluteSize.X, 0, 1)
+        local nextValue = minValue + ((maxValue - minValue) * alpha)
+        apply(nextValue)
+    end
+
+    dragButton.InputBegan:Connect(function(input)
+        if element.Locked then
+            return
+        end
+
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            updateFromInput(input.Position)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateFromInput(input.Position)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    element.Hitbox = dragButton
+    element.GetValue = function()
+        return value
+    end
+    element.SetValue = function(_, nextValue, silent)
+        apply(nextValue, silent)
+    end
+    registerSetter(self.Window, config, function(nextValue, silent)
+        element:SetValue(nextValue, silent)
+    end)
+    element.Card.Parent = self.Page
+    element.LockOverlay.Parent = nil
+    element.LockOverlay.Parent = element.Card
+    element:SetLockedState(config.Locked == true, config.LockedTitle)
+    apply(value, true)
+    return element
+end
+
+function Tab:Dropdown(config)
+    config = config or {}
+    local theme = self.Window.Theme
+    local values = config.Values or config.Options or {}
+    local value = config.Value or values[1] or "Select"
+
+    registerFlag(self.Window, config, value)
+    value = config.Flag and self.Window.Flags[config.Flag] or value
+
+    local element = makeCard(self, config)
+    local baseHeight = element.BaseHeight
+    local open = false
+    element.Card.ClipsDescendants = true
+    element.TitleWrap.Size = UDim2.new(1, -186, 0, baseHeight)
+
+    local selector = create("TextButton", {
+        AutoButtonColor = false,
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundColor3 = theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        Position = UDim2.new(1, -16, 0.5, 0),
+        Size = UDim2.fromOffset(150, 38),
+        Font = Enum.Font.GothamBold,
+        Text = "",
+    })
+    selector.Parent = element.Card
+    corner(selector, 19)
+    stroke(selector, theme.Outline, 0.18)
+
+    local selectedText = create("TextLabel", {
+        BackgroundTransparency = 1,
+        Font = Enum.Font.GothamMedium,
+        Position = UDim2.new(0, 14, 0, 0),
+        Size = UDim2.new(1, -34, 1, 0),
+        Text = tostring(value),
+        TextColor3 = theme.Text,
+        TextSize = 12,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        TextXAlignment = Enum.TextXAlignment.Left,
+    })
+    selectedText.Parent = selector
+
+    local chevron = create("TextLabel", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundTransparency = 1,
+        Font = Enum.Font.GothamBold,
+        Position = UDim2.new(1, -12, 0.5, 0),
+        Size = UDim2.fromOffset(12, 12),
+        Text = "V",
+        TextColor3 = theme.AccentSoft,
+        TextSize = 10,
+    })
+    chevron.Parent = selector
+
+    local listHolder = create("Frame", {
+        BackgroundColor3 = theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 14, 0, baseHeight + 4),
+        Size = UDim2.new(1, -28, 0, 0),
+        Visible = false,
+    })
+    listHolder.Parent = element.Card
+    corner(listHolder, 18)
+    stroke(listHolder, theme.Outline, 0.16)
+
+    local optionScroll = create("ScrollingFrame", {
+        Active = true,
+        AutomaticCanvasSize = Enum.AutomaticSize.None,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        CanvasSize = UDim2.fromOffset(0, 0),
+        ScrollBarImageTransparency = 1,
+        Size = UDim2.new(1, -12, 1, -12),
+        Position = UDim2.new(0, 6, 0, 6),
+    })
+    optionScroll.Parent = listHolder
+
+    local optionLayout = create("UIListLayout", {
+        Padding = UDim.new(0, 6),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+    })
+    optionLayout.Parent = optionScroll
+    optionLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        optionScroll.CanvasSize = UDim2.fromOffset(0, optionLayout.AbsoluteContentSize.Y + 4)
+    end)
+
+    local function setOpen(nextOpen)
+        open = nextOpen == true
+        listHolder.Visible = open
+        local visibleCount = math.min(#values, 5)
+        local listHeight = open and math.max(visibleCount * 34 + math.max(visibleCount - 1, 0) * 6 + 12, 46) or 0
+        element:SetHeight(baseHeight + listHeight + (open and 8 or 0))
+        element.TitleWrap.Size = UDim2.new(1, -186, 0, baseHeight)
+        listHolder.Size = UDim2.new(1, -28, 0, listHeight)
+        chevron.Text = open and "^" or "V"
+    end
+
+    local function apply(nextValue, silent)
+        value = tostring(nextValue)
+        selectedText.Text = value
+        setFlag(self.Window, config, value)
+        if not silent and config.Callback then
+            task.spawn(config.Callback, value)
+        end
+    end
+
+    for _, option in ipairs(values) do
+        local optionText = tostring(option)
+        local button = create("TextButton", {
+            AutoButtonColor = false,
+            BackgroundColor3 = theme.Surface,
+            BorderSizePixel = 0,
+            Size = UDim2.new(1, 0, 0, 34),
+            Font = Enum.Font.GothamMedium,
+            Text = optionText,
+            TextColor3 = theme.Text,
+            TextSize = 12,
+        })
+        button.Parent = optionScroll
+        corner(button, 14)
+        stroke(button, theme.Outline, 0.18)
+
+        button.MouseButton1Click:Connect(function()
+            if element.Locked then
+                return
+            end
+            apply(optionText)
+            setOpen(false)
+        end)
+    end
+
+    selector.MouseButton1Click:Connect(function()
+        if element.Locked then
+            return
+        end
+        setOpen(not open)
+    end)
+
+    element.Hitbox = selector
+    element.GetValue = function()
+        return value
+    end
+    element.SetValue = function(_, nextValue, silent)
+        apply(nextValue, silent)
+    end
+    registerSetter(self.Window, config, function(nextValue, silent)
+        element:SetValue(nextValue, silent)
+    end)
+    element.Card.Parent = self.Page
+    element.LockOverlay.Parent = nil
+    element.LockOverlay.Parent = element.Card
+    element:SetLockedState(config.Locked == true, config.LockedTitle)
+    apply(value, true)
+    setOpen(false)
+    return element
+end
+
+function Tab:Keybind(config)
+    config = config or {}
+    local theme = self.Window.Theme
+    local currentKey = resolveKeyCode(config.Value or config.Default or Enum.KeyCode.RightShift)
+    local listening = false
+
+    registerFlag(self.Window, config, currentKey and currentKey.Name or "")
+    local stored = config.Flag and self.Window.Flags[config.Flag] or (currentKey and currentKey.Name or "")
+    currentKey = resolveKeyCode(stored) or currentKey
+
+    local element = makeCard(self, config)
+    local selector = create("TextButton", {
+        AutoButtonColor = false,
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundColor3 = theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        Position = UDim2.new(1, -16, 0.5, 0),
+        Size = UDim2.fromOffset(112, 38),
+        Font = Enum.Font.GothamBold,
+        Text = "",
+        TextColor3 = theme.AccentSoft,
+        TextSize = 12,
+    })
+    selector.Parent = element.Card
+    corner(selector, 19)
+    stroke(selector, theme.Outline, 0.18)
+
+    local function render()
+        if listening then
+            selector.Text = "PRESS"
+        elseif currentKey then
+            selector.Text = currentKey.Name:upper()
+        else
+            selector.Text = "NONE"
+        end
+    end
+
+    local function apply(nextValue, silent)
+        currentKey = resolveKeyCode(nextValue)
+        setFlag(self.Window, config, currentKey and currentKey.Name or "")
+        render()
+        if not silent and config.Changed then
+            task.spawn(config.Changed, currentKey and currentKey.Name or "")
+        end
+    end
+
+    selector.MouseButton1Click:Connect(function()
+        if element.Locked then
+            return
+        end
+        listening = true
+        render()
+    end)
+
+    UserInputService.InputBegan:Connect(function(input, processed)
+        if listening then
+            if input.UserInputType ~= Enum.UserInputType.Keyboard then
+                return
+            end
+
+            listening = false
+            if input.KeyCode == Enum.KeyCode.Escape then
+                apply(nil)
+            else
+                apply(input.KeyCode)
+            end
+            return
+        end
+
+        if element.Locked or not currentKey then
+            return
+        end
+
+        if not config.AllowProcessed and processed then
+            return
+        end
+
+        if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentKey then
+            if config.Callback then
+                task.spawn(config.Callback, currentKey.Name)
+            end
+        end
+    end)
+
+    element.Hitbox = selector
+    element.GetValue = function()
+        return currentKey and currentKey.Name or ""
+    end
+    element.SetValue = function(_, nextValue, silent)
+        apply(nextValue, silent)
+    end
+    registerSetter(self.Window, config, function(nextValue, silent)
+        element:SetValue(nextValue, silent)
+    end)
+    element.Card.Parent = self.Page
+    element.LockOverlay.Parent = nil
+    element.LockOverlay.Parent = element.Card
+    element:SetLockedState(config.Locked == true, config.LockedTitle)
+    render()
+    return element
+end
+
 function Window:GetValue(flag)
     return self.Flags[flag]
 end
 
-function Window:SetValue(flag, value)
-    self.Flags[flag] = value
+function Window:SetValue(flag, value, silent)
+    local setter = self.FlagSetters[flag]
+    if setter then
+        setter(value, silent)
+    else
+        self.Flags[flag] = value
+    end
+end
+
+function Window:ExportConfig()
+    local output = {}
+    for flag, value in pairs(self.Flags) do
+        if typeof(value) == "EnumItem" then
+            output[flag] = value.Name
+        else
+            output[flag] = value
+        end
+    end
+    return output
+end
+
+function Window:SaveConfig(name)
+    if type(writefile) ~= "function" or type(makefolder) ~= "function" then
+        return false, "File APIs are unavailable in this executor"
+    end
+
+    local rootFolder = sanitizePathPart(self.Config.ConfigFolder or "BloomUI")
+    local windowFolder = rootFolder .. "/" .. sanitizePathPart(self.Config.Title or "Window")
+    ensureFolder(rootFolder)
+    ensureFolder(windowFolder)
+
+    local filePath = windowFolder .. "/" .. sanitizePathPart(name or "default") .. ".json"
+    local payload = HttpService:JSONEncode(self:ExportConfig())
+    writefile(filePath, payload)
+    return true, filePath
+end
+
+function Window:LoadConfig(name)
+    if type(readfile) ~= "function" or type(isfile) ~= "function" then
+        return false, "File APIs are unavailable in this executor"
+    end
+
+    local rootFolder = sanitizePathPart(self.Config.ConfigFolder or "BloomUI")
+    local windowFolder = rootFolder .. "/" .. sanitizePathPart(self.Config.Title or "Window")
+    local filePath = windowFolder .. "/" .. sanitizePathPart(name or "default") .. ".json"
+
+    if not isfile(filePath) then
+        return false, "Config file not found"
+    end
+
+    local decoded = HttpService:JSONDecode(readfile(filePath))
+    for flag, value in pairs(decoded) do
+        self:SetValue(flag, value, true)
+    end
+
+    return true, decoded
 end
 
 function Window:Notify(config)
@@ -1122,5 +1666,25 @@ end
 BloomUI.Themes.Bloom = cloneTheme(DEFAULT_THEME)
 
 return BloomUI
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

@@ -1,19 +1,20 @@
 # BloomUI
 
-BloomUI is an open-source Roblox UI library designed for script hubs that want a sharper first impression than the usual generic panel-and-buttons look.
+BloomUI is an open-source Roblox UI library for script hubs that want a sharper first impression than the usual generic panel-and-buttons look.
 
-This first version focuses on the pieces that matter most in day-to-day hub usage:
+This version focuses on the pieces that matter most in real hub usage:
 
 - a premium-feeling window shell with ambient glow and layered surfaces
 - tab navigation that reads clearly at a glance
-- polished card components for buttons, toggles, and inputs
+- polished card components for buttons, toggles, inputs, sliders, dropdowns, and keybinds
 - a built-in lock state with `:Lock()` and `:Unlock()`
 - lightweight notifications
+- config save/load with JSON persistence for executors that expose file APIs
 - a single-file `main.lua` that is easy to host from GitHub
 
 ## Why it feels different
 
-WindUI gets a lot right: clean API shape, lockable elements, and script-hub-friendly ergonomics. BloomUI keeps those good ideas, then pushes harder on visual hierarchy, materials, and state feedback so the UI feels more custom and less like a public library drop-in.
+WindUI gets a lot right: clean API shape, lockable elements, and script-hub-friendly ergonomics. BloomUI keeps those good ideas, then pushes harder on hierarchy, material layering, state feedback, and visual identity so the UI feels more custom and less like a public library drop-in.
 
 The visual direction here is:
 
@@ -28,7 +29,7 @@ The visual direction here is:
 ### Create the library
 
 ```lua
-local BloomUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/yourname/BloomUI/main/main.lua"))()
+local BloomUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/hanniii1/BloomUI/refs/heads/main/main.lua"))()
 ```
 
 ### Create a window
@@ -38,6 +39,7 @@ local window = BloomUI:CreateWindow({
     Title = "BloomUI",
     Subtitle = "A hub shell that feels premium",
     ToggleKey = Enum.KeyCode.RightControl,
+    ConfigFolder = "BloomUIConfigs",
 })
 ```
 
@@ -48,6 +50,7 @@ Window options:
 - `Size`
 - `ToggleKey`
 - `Theme`
+- `ConfigFolder`
 
 ### Create tabs
 
@@ -102,6 +105,53 @@ tab:Input({
 })
 ```
 
+Slider:
+
+```lua
+tab:Slider({
+    Title = "Walk Speed",
+    Desc = "Tune movement speed",
+    Flag = "WalkSpeed",
+    Min = 16,
+    Max = 120,
+    Step = 1,
+    Value = 32,
+    Suffix = " ws",
+    Callback = function(value)
+        print(value)
+    end,
+})
+```
+
+Dropdown:
+
+```lua
+tab:Dropdown({
+    Title = "Target Area",
+    Desc = "Choose a route",
+    Flag = "TargetArea",
+    Values = {"Forest", "Temple", "Cavern"},
+    Value = "Temple",
+    Callback = function(value)
+        print(value)
+    end,
+})
+```
+
+Keybind:
+
+```lua
+tab:Keybind({
+    Title = "Panic Key",
+    Desc = "Bind an emergency action",
+    Flag = "PanicKey",
+    Value = Enum.KeyCode.P,
+    Callback = function(keyName)
+        print(keyName)
+    end,
+})
+```
+
 Sections and spacing:
 
 ```lua
@@ -146,6 +196,15 @@ print(window:GetValue("AutoCollect"))
 window:SetValue("AutoCollect", false)
 ```
 
+### Config persistence
+
+```lua
+local okSave, savePath = window:SaveConfig("default")
+local okLoad, dataOrError = window:LoadConfig("default")
+```
+
+`SaveConfig` and `LoadConfig` rely on executor file functions such as `writefile`, `readfile`, `makefolder`, and `isfile`.
+
 ## Themes
 
 BloomUI ships with a default `Bloom` theme and supports custom themes:
@@ -189,11 +248,11 @@ BloomUI/
 
 ## Suggested next upgrades
 
-- sliders, dropdowns, and keybinds
-- save manager / config persistence
-- richer mobile layout rules
-- icon pack support
+- multi-select dropdowns and search
+- theme hot swapping inside the UI
 - modal system and command palette
+- richer mobile-specific sidebar behavior
+- icon pack integration
 
 ## License
 
