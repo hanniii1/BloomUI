@@ -8,17 +8,17 @@ local BloomUI = {
 }
 
 local DEFAULT_THEME = {
-    Accent = Color3.fromRGB(255, 132, 76),
-    AccentSoft = Color3.fromRGB(255, 188, 140),
-    Background = Color3.fromRGB(8, 10, 16),
-    Panel = Color3.fromRGB(17, 20, 29),
-    Surface = Color3.fromRGB(26, 29, 41),
-    SurfaceAlt = Color3.fromRGB(19, 22, 33),
-    Overlay = Color3.fromRGB(6, 7, 12),
-    Outline = Color3.fromRGB(53, 58, 74),
-    OutlineStrong = Color3.fromRGB(82, 90, 112),
+    Accent = Color3.fromRGB(255, 146, 94),
+    AccentSoft = Color3.fromRGB(255, 206, 171),
+    Background = Color3.fromRGB(9, 11, 17),
+    Panel = Color3.fromRGB(14, 17, 25),
+    Surface = Color3.fromRGB(20, 23, 34),
+    SurfaceAlt = Color3.fromRGB(16, 19, 29),
+    Overlay = Color3.fromRGB(7, 8, 13),
+    Outline = Color3.fromRGB(39, 45, 60),
+    OutlineStrong = Color3.fromRGB(68, 76, 98),
     Text = Color3.fromRGB(246, 247, 251),
-    Subtext = Color3.fromRGB(160, 167, 186),
+    Subtext = Color3.fromRGB(151, 158, 177),
     Positive = Color3.fromRGB(99, 214, 153),
     Danger = Color3.fromRGB(255, 104, 104),
 }
@@ -26,7 +26,7 @@ local DEFAULT_THEME = {
 local DEFAULT_WINDOW = {
     Title = "BloomUI",
     Subtitle = "Luxury shell for script hubs",
-    Size = UDim2.fromOffset(760, 500),
+    Size = UDim2.fromOffset(730, 470),
     ToggleKey = Enum.KeyCode.RightControl,
     Theme = nil,
     ConfigFolder = "BloomUI",
@@ -156,6 +156,13 @@ Window.__index = Window
 local Tab = {}
 Tab.__index = Tab
 
+local function pushItem(tab, instance)
+    tab.NextOrder = (tab.NextOrder or 0) + 1
+    instance.LayoutOrder = tab.NextOrder
+    instance.Parent = tab.Page
+    return instance
+end
+
 local Element = {}
 Element.__index = Element
 
@@ -242,25 +249,25 @@ local function makeCard(tab, config)
     local card = create("Frame", {
         BackgroundColor3 = theme.Surface,
         BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, config.Desc and config.Desc ~= "" and 82 or 60),
+        Size = UDim2.new(1, 0, 0, config.Desc and config.Desc ~= "" and 76 or 56),
     })
-    corner(card, 20)
-    stroke(card, theme.Outline, 0.08)
+    corner(card, 18)
+    stroke(card, theme.Outline, 0.16)
     gradient(card, theme.Surface, theme.SurfaceAlt, 90)
 
     local bloomLine = create("Frame", {
         BackgroundColor3 = theme.Accent,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 14, 0, 0),
-        Size = UDim2.new(1, -28, 0, 2),
+        Position = UDim2.new(0, 16, 0.5, -10),
+        Size = UDim2.new(0, 3, 0, 20),
     })
     bloomLine.Parent = card
-    gradient(bloomLine, theme.AccentSoft, theme.Accent, 0)
+    corner(bloomLine, 2)
 
     local wrap = create("Frame", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 18, 0, 0),
-        Size = UDim2.new(1, -170, 1, 0),
+        Position = UDim2.new(0, 22, 0, 0),
+        Size = UDim2.new(1, -176, 1, 0),
     })
     wrap.Parent = card
 
@@ -276,7 +283,8 @@ local function makeCard(tab, config)
         Size = UDim2.new(1, 0, 0, 20),
         Text = config.Title or "Untitled",
         TextColor3 = theme.Text,
-        TextSize = 15,
+        TextSize = 16,
+        TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     title.Parent = wrap
@@ -287,7 +295,8 @@ local function makeCard(tab, config)
         Size = UDim2.new(1, 0, 0, 16),
         Text = config.Desc or "",
         TextColor3 = theme.Subtext,
-        TextSize = 12,
+        TextSize = 10,
+        TextWrapped = true,
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
         Visible = config.Desc ~= nil and config.Desc ~= "",
@@ -334,6 +343,7 @@ local function makeCard(tab, config)
         Text = config.LockedTitle or "Locked",
         TextColor3 = theme.Text,
         TextSize = 13,
+        TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     lockText.Parent = pill
@@ -349,7 +359,7 @@ local function makeCard(tab, config)
         DescLabel = desc,
         LockOverlay = overlay,
         LockText = lockText,
-        BaseHeight = config.Desc and config.Desc ~= "" and 82 or 60,
+        BaseHeight = config.Desc and config.Desc ~= "" and 76 or 56,
         Locked = false,
     }, Element)
 end
@@ -363,8 +373,8 @@ function Element:SetLockedState(locked, label)
 
     self.LockText.Text = self.Config.LockedTitle or "Locked"
     self.LockOverlay.Visible = locked
-    self.TitleLabel.TextTransparency = locked and 0.45 or 0
-    self.DescLabel.TextTransparency = locked and 0.6 or 0
+    self.TitleLabel.TextTransparency = locked and 0.35 or 0
+    self.DescLabel.TextTransparency = locked and 0.55 or 0
 
     if self.Hitbox then
         self.Hitbox.Active = not locked
@@ -387,7 +397,7 @@ end
 function Element:SetHeight(height)
     self.Card.Size = UDim2.new(1, 0, 0, height)
     if self.TitleWrap then
-        self.TitleWrap.Size = UDim2.new(1, -170, 0, math.min(height, self.BaseHeight or height))
+        self.TitleWrap.Size = UDim2.new(1, -176, 0, math.min(height, self.BaseHeight or height))
     end
     return self
 end
@@ -430,17 +440,17 @@ function BloomUI:CreateWindow(config)
     shell.Parent = screenGui
 
     local shellScale = create("UIScale", {
-        Scale = 0.96,
+        Scale = 0.98,
     })
     shellScale.Parent = shell
 
     local glowA = create("Frame", {
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = theme.Accent,
-        BackgroundTransparency = 0.9,
+        BackgroundTransparency = 0.965,
         BorderSizePixel = 0,
-        Position = UDim2.new(0.38, 0, 0.4, 0),
-        Size = UDim2.fromOffset(300, 300),
+        Position = UDim2.new(0.36, 0, 0.34, 0),
+        Size = UDim2.fromOffset(220, 220),
     })
     glowA.Parent = screenGui
     corner(glowA, 999)
@@ -448,17 +458,17 @@ function BloomUI:CreateWindow(config)
     local glowB = create("Frame", {
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = theme.AccentSoft,
-        BackgroundTransparency = 0.94,
+        BackgroundTransparency = 0.978,
         BorderSizePixel = 0,
-        Position = UDim2.new(0.66, 0, 0.66, 0),
-        Size = UDim2.fromOffset(380, 380),
+        Position = UDim2.new(0.69, 0, 0.72, 0),
+        Size = UDim2.fromOffset(280, 280),
     })
     glowB.Parent = screenGui
     corner(glowB, 999)
 
     local shadow = create("Frame", {
         BackgroundColor3 = Color3.new(),
-        BackgroundTransparency = 0.45,
+        BackgroundTransparency = 0.58,
         BorderSizePixel = 0,
         Position = UDim2.new(0, 0, 0, 18),
         Size = UDim2.fromScale(1, 1),
@@ -472,10 +482,10 @@ function BloomUI:CreateWindow(config)
         Size = UDim2.fromScale(1, 1),
     })
     root.Parent = shell
-    corner(root, 32)
-    stroke(root, theme.OutlineStrong, 0.14)
+    corner(root, 28)
+    stroke(root, theme.OutlineStrong, 0.2)
     gradient(root, theme.Background, Color3.fromRGB(5, 7, 12), 90)
-    padding(root, 14, 14, 14, 14)
+    padding(root, 12, 12, 12, 12)
 
     local sidebar = create("Frame", {
         BackgroundColor3 = theme.Panel,
@@ -483,10 +493,10 @@ function BloomUI:CreateWindow(config)
         Size = UDim2.new(0, sidebarWidth, 1, 0),
     })
     sidebar.Parent = root
-    corner(sidebar, 26)
+    corner(sidebar, 22)
     stroke(sidebar, theme.Outline, 0.14)
     gradient(sidebar, theme.Panel, theme.SurfaceAlt, 90)
-    padding(sidebar, 18, 18, 18, 18)
+    padding(sidebar, 16, 16, 16, 16)
 
     local brand = create("TextLabel", {
         BackgroundTransparency = 1,
@@ -495,6 +505,7 @@ function BloomUI:CreateWindow(config)
         Text = resolved.Title,
         TextColor3 = theme.Text,
         TextSize = 21,
+        TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     brand.Parent = sidebar
@@ -503,10 +514,11 @@ function BloomUI:CreateWindow(config)
         BackgroundTransparency = 1,
         Font = Enum.Font.Gotham,
         Position = UDim2.new(0, 0, 0, 28),
-        Size = UDim2.new(1, -52, 0, 16),
+        Size = UDim2.new(1, -52, 0, 28),
         Text = resolved.Subtitle,
         TextColor3 = theme.Subtext,
-        TextSize = 12,
+        TextSize = 10,
+        TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     subtitle.Parent = sidebar
@@ -520,7 +532,7 @@ function BloomUI:CreateWindow(config)
         Font = Enum.Font.GothamBold,
         Text = glyph(resolved.Title),
         TextColor3 = theme.AccentSoft,
-        TextSize = 11,
+        TextSize = 10,
     })
     brandChip.Parent = sidebar
     corner(brandChip, 14)
@@ -530,9 +542,9 @@ function BloomUI:CreateWindow(config)
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         CanvasSize = UDim2.fromOffset(0, 0),
-        Position = UDim2.new(0, 0, 0, 74),
+        Position = UDim2.new(0, 0, 0, 82),
         ScrollBarImageTransparency = 1,
-        Size = UDim2.new(1, 0, 1, -74),
+        Size = UDim2.new(1, 0, 1, -82),
     })
     tabHolder.Parent = sidebar
 
@@ -552,24 +564,25 @@ function BloomUI:CreateWindow(config)
         Size = UDim2.new(1, -contentInset, 1, 0),
     })
     content.Parent = root
-    corner(content, 26)
+    corner(content, 22)
     stroke(content, theme.Outline, 0.14)
     gradient(content, theme.Panel, theme.SurfaceAlt, 90)
-    padding(content, 18, 18, 18, 18)
+    padding(content, 16, 16, 16, 16)
 
     local topbar = create("Frame", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 48),
+        Size = UDim2.new(1, 0, 0, 44),
     })
     topbar.Parent = content
 
     local topTitle = create("TextLabel", {
         BackgroundTransparency = 1,
         Font = Enum.Font.GothamBold,
-        Size = UDim2.new(1, -110, 0, 22),
+        Size = UDim2.new(1, -110, 0, 20),
         Text = "Dashboard",
         TextColor3 = theme.Text,
-        TextSize = 20,
+        TextSize = 18,
+        TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     topTitle.Parent = topbar
@@ -577,19 +590,20 @@ function BloomUI:CreateWindow(config)
     local topSub = create("TextLabel", {
         BackgroundTransparency = 1,
         Font = Enum.Font.Gotham,
-        Position = UDim2.new(0, 0, 0, 24),
-        Size = UDim2.new(1, -110, 0, 18),
+        Position = UDim2.new(0, 0, 0, 22),
+        Size = UDim2.new(1, -110, 0, 16),
         Text = "Built to feel custom, not copied.",
         TextColor3 = theme.Subtext,
-        TextSize = 12,
+        TextSize = 10,
+        TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     topSub.Parent = topbar
 
     local pageHost = create("Frame", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 60),
-        Size = UDim2.new(1, 0, 1, -60),
+        Position = UDim2.new(0, 0, 0, 54),
+        Size = UDim2.new(1, 0, 1, -54),
     })
     pageHost.Parent = content
 
@@ -665,7 +679,7 @@ function BloomUI:CreateWindow(config)
             AutoButtonColor = false,
             BackgroundColor3 = theme.Surface,
             BorderSizePixel = 0,
-            Size = UDim2.fromOffset(32, 32),
+            Size = UDim2.fromOffset(28, 28),
             Font = Enum.Font.GothamBold,
             Text = symbol,
             TextColor3 = theme.Subtext,
@@ -749,7 +763,7 @@ function Window:CreateTab(config)
         AutoButtonColor = false,
         BackgroundColor3 = theme.SurfaceAlt,
         BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, 54),
+        Size = UDim2.new(1, 0, 0, 50),
         Font = Enum.Font.GothamBold,
         Text = "",
     })
@@ -765,24 +779,25 @@ function Window:CreateTab(config)
     local icon = create("TextLabel", {
         BackgroundColor3 = theme.Surface,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 10, 0.5, -16),
-        Size = UDim2.fromOffset(32, 32),
+        Position = UDim2.new(0, 10, 0.5, -14),
+        Size = UDim2.fromOffset(28, 28),
         Font = Enum.Font.GothamBold,
         Text = glyph(config.Icon or config.Title),
         TextColor3 = theme.AccentSoft,
-        TextSize = 11,
+        TextSize = 10,
     })
     icon.Parent = button
-    corner(icon, 16)
+    corner(icon, 14)
 
     local title = create("TextLabel", {
         BackgroundTransparency = 1,
         Font = Enum.Font.GothamBold,
-        Position = UDim2.new(0, 52, 0, 10),
-        Size = UDim2.new(1, -64, 0, 18),
+        Position = UDim2.new(0, 48, 0, 8),
+        Size = UDim2.new(1, -58, 0, 18),
         Text = config.Title or "Tab",
         TextColor3 = theme.Text,
         TextSize = 14,
+        TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     title.Parent = button
@@ -790,11 +805,12 @@ function Window:CreateTab(config)
     local subtitle = create("TextLabel", {
         BackgroundTransparency = 1,
         Font = Enum.Font.Gotham,
-        Position = UDim2.new(0, 52, 0, 28),
-        Size = UDim2.new(1, -64, 0, 14),
+        Position = UDim2.new(0, 48, 0, 26),
+        Size = UDim2.new(1, -58, 0, 14),
         Text = config.Desc or "Build your flow here",
         TextColor3 = theme.Subtext,
-        TextSize = 11,
+        TextSize = 10,
+        TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     subtitle.Parent = button
@@ -827,6 +843,7 @@ function Window:CreateTab(config)
         Title = title,
         Scale = scale,
         Active = false,
+        NextOrder = 0,
     }, Tab)
 
     function tab:SetActive(active)
@@ -877,14 +894,23 @@ function Tab:Section(text)
     local label = create("TextLabel", {
         BackgroundTransparency = 1,
         Font = Enum.Font.GothamBold,
-        Size = UDim2.new(1, 0, 0, 16),
+        Size = UDim2.new(1, 0, 0, 18),
         Text = tostring(text or "Section"):upper(),
         TextColor3 = self.Window.Theme.AccentSoft,
-        TextSize = 11,
+        TextSize = 10,
+        TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    label.Parent = self.Page
-    return label
+    local divider = create("Frame", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundColor3 = self.Window.Theme.Outline,
+        BackgroundTransparency = 0.35,
+        BorderSizePixel = 0,
+        Position = UDim2.new(1, 0, 0.5, 0),
+        Size = UDim2.new(1, -96, 0, 1),
+    })
+    divider.Parent = label
+    return pushItem(self, label)
 end
 
 function Tab:Spacer(height)
@@ -892,8 +918,113 @@ function Tab:Spacer(height)
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, height or 4),
     })
-    spacer.Parent = self.Page
-    return spacer
+    return pushItem(self, spacer)
+end
+
+function Tab:Hero(config)
+    config = config or {}
+    local theme = self.Window.Theme
+    local hero = create("Frame", {
+        BackgroundColor3 = theme.Surface,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 138),
+    })
+    corner(hero, 22)
+    stroke(hero, theme.OutlineStrong, 0.16)
+    gradient(hero, theme.Surface, theme.SurfaceAlt, 90)
+
+    local glow = create("Frame", {
+        AnchorPoint = Vector2.new(1, 0),
+        BackgroundColor3 = theme.Accent,
+        BackgroundTransparency = 0.84,
+        BorderSizePixel = 0,
+        Position = UDim2.new(1, 42, 0, -36),
+        Size = UDim2.fromOffset(190, 190),
+    })
+    glow.Parent = hero
+    corner(glow, 999)
+
+    local accent = create("Frame", {
+        BackgroundColor3 = theme.Accent,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 18, 0, 18),
+        Size = UDim2.fromOffset(40, 4),
+    })
+    accent.Parent = hero
+    corner(accent, 2)
+
+    local title = create("TextLabel", {
+        BackgroundTransparency = 1,
+        Font = Enum.Font.GothamBold,
+        Position = UDim2.new(0, 18, 0, 32),
+        Size = UDim2.new(1, -180, 0, 28),
+        Text = config.Title or "BloomUI Showcase",
+        TextColor3 = theme.Text,
+        TextSize = 22,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top,
+    })
+    title.Parent = hero
+
+    local desc = create("TextLabel", {
+        BackgroundTransparency = 1,
+        Font = Enum.Font.Gotham,
+        Position = UDim2.new(0, 18, 0, 66),
+        Size = UDim2.new(1, -220, 0, 38),
+        Text = config.Desc or "A tighter script-hub shell with bigger type, calmer depth, and premium states.",
+        TextColor3 = theme.Subtext,
+        TextSize = 13,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top,
+    })
+    desc.Parent = hero
+
+    local stats = config.Stats or {}
+    for index, stat in ipairs(stats) do
+        local pill = create("Frame", {
+            BackgroundColor3 = theme.Panel,
+            BorderSizePixel = 0,
+            Position = UDim2.new(0, 18 + ((index - 1) * 112), 1, -36),
+            Size = UDim2.fromOffset(102, 24),
+        })
+        pill.Parent = hero
+        corner(pill, 12)
+        stroke(pill, theme.Outline, 0.18)
+
+        local pillText = create("TextLabel", {
+            BackgroundTransparency = 1,
+            Font = Enum.Font.GothamBold,
+            Size = UDim2.new(1, -14, 1, 0),
+            Position = UDim2.new(0, 10, 0, 0),
+            Text = tostring(stat),
+            TextColor3 = theme.AccentSoft,
+            TextSize = 11,
+            TextWrapped = true,
+            TextXAlignment = Enum.TextXAlignment.Left,
+        })
+        pillText.Parent = pill
+    end
+
+    if config.Tag then
+        local tag = create("TextLabel", {
+            AnchorPoint = Vector2.new(1, 0),
+            BackgroundColor3 = theme.Panel,
+            BorderSizePixel = 0,
+            Position = UDim2.new(1, -18, 0, 18),
+            Size = UDim2.fromOffset(112, 28),
+            Font = Enum.Font.GothamBold,
+            Text = tostring(config.Tag),
+            TextColor3 = theme.AccentSoft,
+            TextSize = 11,
+        })
+        tag.Parent = hero
+        corner(tag, 14)
+        stroke(tag, theme.Outline, 0.18)
+    end
+
+    return pushItem(self, hero)
 end
 
 function Tab:Button(config)
@@ -915,14 +1046,14 @@ function Tab:Button(config)
         BackgroundColor3 = theme.SurfaceAlt,
         BorderSizePixel = 0,
         Position = UDim2.new(1, -16, 0.5, 0),
-        Size = UDim2.fromOffset(88, 38),
+        Size = UDim2.fromOffset(80, 34),
         Font = Enum.Font.GothamBold,
         Text = config.Badge or "RUN",
         TextColor3 = theme.AccentSoft,
-        TextSize = 12,
+        TextSize = 10,
     })
     badge.Parent = element.Card
-    corner(badge, 19)
+    corner(badge, 17)
     stroke(badge, theme.Outline, 0.18)
 
     local scale = create("UIScale", {
@@ -954,7 +1085,7 @@ function Tab:Button(config)
     end)
 
     element.Hitbox = hitbox
-    element.Card.Parent = self.Page
+    pushItem(self, element.Card)
     element.LockOverlay.Parent = nil
     element.LockOverlay.Parent = element.Card
     element:SetLockedState(config.Locked == true, config.LockedTitle)
@@ -1029,7 +1160,7 @@ function Tab:Toggle(config)
     registerSetter(self.Window, config, function(nextValue, silent)
         element:SetValue(nextValue, silent)
     end)
-    element.Card.Parent = self.Page
+    pushItem(self, element.Card)
     element.LockOverlay.Parent = nil
     element.LockOverlay.Parent = element.Card
     element:SetLockedState(config.Locked == true, config.LockedTitle)
@@ -1063,11 +1194,12 @@ function Tab:Input(config)
         Font = Enum.Font.Gotham,
         PlaceholderColor3 = theme.Subtext,
         PlaceholderText = config.Placeholder or "Type here...",
-        Position = UDim2.new(0, 14, 0, 0),
+        Position = UDim2.new(0, 16, 0.5, -10),
         Size = UDim2.new(1, -28, 1, 0),
         Text = value,
         TextColor3 = theme.Text,
         TextSize = 13,
+        TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     box.Parent = wrap
@@ -1095,7 +1227,7 @@ function Tab:Input(config)
     registerSetter(self.Window, config, function(nextValue, silent)
         element:SetValue(nextValue, silent)
     end)
-    element.Card.Parent = self.Page
+    pushItem(self, element.Card)
     element.LockOverlay.Parent = nil
     element.LockOverlay.Parent = element.Card
     element:SetLockedState(config.Locked == true, config.LockedTitle)
@@ -1135,7 +1267,7 @@ function Tab:Slider(config)
         Font = Enum.Font.GothamBold,
         Text = "",
         TextColor3 = theme.AccentSoft,
-        TextSize = 12,
+        TextSize = 10,
     })
     valuePill.Parent = element.Card
     corner(valuePill, 16)
@@ -1233,7 +1365,7 @@ function Tab:Slider(config)
     registerSetter(self.Window, config, function(nextValue, silent)
         element:SetValue(nextValue, silent)
     end)
-    element.Card.Parent = self.Page
+    pushItem(self, element.Card)
     element.LockOverlay.Parent = nil
     element.LockOverlay.Parent = element.Card
     element:SetLockedState(config.Locked == true, config.LockedTitle)
@@ -1273,12 +1405,13 @@ function Tab:Dropdown(config)
     local selectedText = create("TextLabel", {
         BackgroundTransparency = 1,
         Font = Enum.Font.GothamMedium,
-        Position = UDim2.new(0, 14, 0, 0),
+        Position = UDim2.new(0, 16, 0.5, -10),
         Size = UDim2.new(1, -34, 1, 0),
         Text = tostring(value),
         TextColor3 = theme.Text,
-        TextSize = 12,
+        TextSize = 10,
         TextTruncate = Enum.TextTruncate.AtEnd,
+        TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     selectedText.Parent = selector
@@ -1357,7 +1490,7 @@ function Tab:Dropdown(config)
             Font = Enum.Font.GothamMedium,
             Text = optionText,
             TextColor3 = theme.Text,
-            TextSize = 12,
+            TextSize = 10,
         })
         button.Parent = optionScroll
         corner(button, 14)
@@ -1389,7 +1522,7 @@ function Tab:Dropdown(config)
     registerSetter(self.Window, config, function(nextValue, silent)
         element:SetValue(nextValue, silent)
     end)
-    element.Card.Parent = self.Page
+    pushItem(self, element.Card)
     element.LockOverlay.Parent = nil
     element.LockOverlay.Parent = element.Card
     element:SetLockedState(config.Locked == true, config.LockedTitle)
@@ -1419,7 +1552,7 @@ function Tab:Keybind(config)
         Font = Enum.Font.GothamBold,
         Text = "",
         TextColor3 = theme.AccentSoft,
-        TextSize = 12,
+        TextSize = 10,
     })
     selector.Parent = element.Card
     corner(selector, 19)
@@ -1492,7 +1625,7 @@ function Tab:Keybind(config)
     registerSetter(self.Window, config, function(nextValue, silent)
         element:SetValue(nextValue, silent)
     end)
-    element.Card.Parent = self.Page
+    pushItem(self, element.Card)
     element.LockOverlay.Parent = nil
     element.LockOverlay.Parent = element.Card
     element:SetLockedState(config.Locked == true, config.LockedTitle)
@@ -1592,7 +1725,8 @@ function Window:Notify(config)
         Size = UDim2.new(1, -38, 0, 20),
         Text = config.Title or "BloomUI",
         TextColor3 = theme.Text,
-        TextSize = 15,
+        TextSize = 16,
+        TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     title.Parent = toast
@@ -1604,7 +1738,8 @@ function Window:Notify(config)
         Size = UDim2.new(1, -38, 0, 28),
         Text = config.Content or "Ready.",
         TextColor3 = theme.Subtext,
-        TextSize = 12,
+        TextSize = 10,
+        TextWrapped = true,
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Top,
@@ -1666,6 +1801,16 @@ end
 BloomUI.Themes.Bloom = cloneTheme(DEFAULT_THEME)
 
 return BloomUI
+
+
+
+
+
+
+
+
+
+
 
 
 

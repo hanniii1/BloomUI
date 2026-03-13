@@ -6,7 +6,7 @@ This version focuses on the pieces that matter most in real hub usage:
 
 - a premium-feeling window shell with ambient glow and layered surfaces
 - tab navigation that reads clearly at a glance
-- polished card components for buttons, toggles, inputs, sliders, dropdowns, and keybinds
+- polished card components for buttons, toggles, inputs, sliders, dropdowns, keybinds, and hero banners
 - a built-in lock state with `:Lock()` and `:Unlock()`
 - lightweight notifications
 - config save/load with JSON persistence for executors that expose file APIs
@@ -138,6 +138,17 @@ tab:Dropdown({
 })
 ```
 
+Hero:
+
+```lua
+tab:Hero({
+    Title = "BloomUI Showcase",
+    Desc = "A presentation banner for the top of a tab",
+    Tag = "OPEN SOURCE",
+    Stats = {"Configs", "Premium", "Smooth"},
+})
+```
+
 Keybind:
 
 ```lua
@@ -257,3 +268,5 @@ BloomUI/
 ## License
 
 MIT. See [LICENSE](./LICENSE).
+
+
