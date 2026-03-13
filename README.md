@@ -29,7 +29,7 @@ The visual direction here is:
 ### Create the library
 
 ```lua
-local BloomUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/hanniii1/BloomUI/refs/heads/main/main.lua"))()
+local BloomUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/hanniii1/BloomUI/main/main.lua"))()
 ```
 
 ### Create a window
@@ -268,5 +268,6 @@ BloomUI/
 ## License
 
 MIT. See [LICENSE](./LICENSE).
+
 
 

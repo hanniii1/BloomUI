@@ -2,48 +2,48 @@ local BloomUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/hanni
 
 local window = BloomUI:CreateWindow({
     Title = "BloomUI",
-    Subtitle = "Premium script-hub language with cleaner density and bigger type.",
+    Subtitle = "Premium script-hub UI.",
     ToggleKey = Enum.KeyCode.RightControl,
     ConfigFolder = "BloomUIConfigs",
 })
 
 local overview = window:CreateTab({
     Title = "Overview",
-    Desc = "A stronger first impression with premium states and hub-focused controls.",
+    Desc = "First-look actions.",
     Icon = "OV",
 })
 
 overview:Hero({
-    Title = "BloomUI Hybrid Showcase",
-    Desc = "A calmer WindUI-style structure mixed with the branded ambition and premium feel of Nebula-inspired hubs.",
+    Title = "Cleaner, sharper hub UI",
+    Desc = "Built for dense hubs with calmer spacing and stronger hierarchy.",
     Tag = "OPEN SOURCE",
-    Stats = {"Smooth States", "Larger Type", "Premium Locks"},
+    Stats = {"Locks", "Configs", "Keybinds"},
 })
 
-overview:Section("Quick Actions")
+overview:Section("Launch")
 
 overview:Button({
     Title = "Launch Route",
-    Desc = "Start the default farming route with your current profile.",
+    Desc = "Start the default route.",
     Badge = "PLAY",
     Callback = function()
         window:Notify({
             Title = "Route Started",
-            Content = "BloomUI fired the launch action cleanly.",
+            Content = "Default route is now active.",
         })
     end,
 })
 
 local premiumRaid = overview:Button({
     Title = "Premium Raid",
-    Desc = "This card starts locked to show the premium overlay state.",
+    Desc = "Locked high-value route.",
     Badge = "PLUS",
     Locked = true,
     LockedTitle = "Premium",
     Callback = function()
         window:Notify({
             Title = "Premium Raid",
-            Content = "Premium route launched successfully.",
+            Content = "Premium route launched.",
             Color = window.Theme.Positive,
         })
     end,
@@ -51,13 +51,13 @@ local premiumRaid = overview:Button({
 
 overview:Button({
     Title = "Unlock Premium",
-    Desc = "Reveal the locked card and show the transition behavior.",
+    Desc = "Reveal the locked action.",
     Badge = "SYNC",
     Callback = function()
         premiumRaid:Unlock()
         window:Notify({
             Title = "Premium Unlocked",
-            Content = "The locked premium action is now live.",
+            Content = "Locked content is now available.",
             Color = window.Theme.Positive,
         })
     end,
@@ -67,113 +67,96 @@ overview:Section("Live Controls")
 
 overview:Toggle({
     Title = "Auto Collect",
-    Desc = "Scoops nearby drops and reward orbs automatically.",
+    Desc = "Pick up nearby drops.",
     Flag = "AutoCollect",
     Value = true,
-    Callback = function(state)
-        print("Auto Collect:", state)
-    end,
 })
 
 overview:Slider({
     Title = "Walk Speed",
-    Desc = "Tune movement speed with drag input.",
+    Desc = "Tune movement speed.",
     Flag = "WalkSpeed",
     Min = 16,
     Max = 120,
     Step = 1,
     Value = 32,
     Suffix = " ws",
-    Callback = function(value)
-        print("Walk Speed:", value)
-    end,
 })
 
 overview:Dropdown({
     Title = "Target Zone",
-    Desc = "Choose the active route destination.",
+    Desc = "Choose your route.",
     Flag = "TargetZone",
-    Values = {"Forest", "Temple", "Cavern", "Sky Raid", "Void Gate"},
+    Values = {"Forest", "Temple", "Cavern", "Sky", "Vault"},
     Value = "Temple",
-    Callback = function(value)
-        print("Target Zone:", value)
-    end,
 })
 
 local automation = window:CreateTab({
     Title = "Automation",
-    Desc = "The denser hub workflow: profile, input, bind, and config handling.",
+    Desc = "Profiles and binds.",
     Icon = "AU",
 })
 
-automation:Hero({
-    Title = "Configurable Hub Flow",
-    Desc = "Use inputs, dropdowns, and keybinds together so BloomUI feels like a full suite, not just a button list.",
-    Tag = "WORKFLOW",
-    Stats = {"Configs", "Profiles", "Keybinds"},
-})
-
-automation:Section("Profiles")
+automation:Section("Profile")
 
 automation:Dropdown({
     Title = "Profile",
-    Desc = "Swap between saved play styles.",
+    Desc = "Swap your preset.",
     Flag = "Profile",
-    Values = {"Legit", "Aggressive", "Stealth", "Bossing"},
-    Value = "Legit",
-    Callback = function(value)
-        print("Profile:", value)
-    end,
+    Values = {"Legit", "Stealth", "Aggressive", "Boss"},
+    Value = "Stealth",
 })
 
 automation:Input({
     Title = "Webhook",
-    Desc = "Send session updates directly to Discord.",
-    Placeholder = "https://discord.com/api/webhooks/...",
+    Desc = "Session alerts.",
+    Placeholder = "discord webhook...",
     Flag = "Webhook",
-    Callback = function(value)
-        print("Webhook:", value)
-    end,
 })
 
 automation:Keybind({
     Title = "Panic Key",
-    Desc = "Trigger your emergency routine with a bound key.",
+    Desc = "Emergency stop bind.",
     Flag = "PanicKey",
     Value = Enum.KeyCode.P,
     Changed = function(keyName)
         window:Notify({
             Title = "Keybind Updated",
-            Content = "Panic Key is now bound to " .. tostring(keyName ~= "" and keyName or "NONE"),
+            Content = "Panic Key: " .. tostring(keyName ~= "" and keyName or "NONE"),
         })
     end,
     Callback = function(keyName)
         window:Notify({
-            Title = "Panic Key Triggered",
-            Content = "Triggered with " .. tostring(keyName),
+            Title = "Panic Triggered",
+            Content = "Pressed " .. tostring(keyName),
             Color = window.Theme.Danger,
+        })
+    end,
+})
+
+automation:Button({
+    Title = "Test Notification",
+    Desc = "Preview alert styling.",
+    Badge = "PING",
+    Callback = function()
+        window:Notify({
+            Title = "Automation",
+            Content = "Notification preview sent.",
         })
     end,
 })
 
 local settings = window:CreateTab({
     Title = "Settings",
-    Desc = "Persistence and utility actions for a real script-hub loop.",
+    Desc = "Persistence and tools.",
     Icon = "ST",
-})
-
-settings:Hero({
-    Title = "Persistence Layer",
-    Desc = "Save and load flags so the library feels practical for real executor usage, not just pretty on first run.",
-    Tag = "UTILITY",
-    Stats = {"Save JSON", "Load State", "Reusable"},
 })
 
 settings:Section("Config")
 
 settings:Button({
     Title = "Save Config",
-    Desc = "Writes the current flags to a JSON file.",
+    Desc = "Write flags to JSON.",
     Badge = "SAVE",
     Callback = function()
         local ok, result = window:SaveConfig("showcase")
@@ -187,13 +170,13 @@ settings:Button({
 
 settings:Button({
     Title = "Load Config",
-    Desc = "Loads the saved JSON file back into the live controls.",
+    Desc = "Restore saved state.",
     Badge = "LOAD",
     Callback = function()
         local ok, result = window:LoadConfig("showcase")
         window:Notify({
             Title = ok and "Config Loaded" or "Load Failed",
-            Content = ok and "Flags restored from disk." or tostring(result),
+            Content = ok and "State restored from disk." or tostring(result),
             Color = ok and window.Theme.Positive or window.Theme.Danger,
         })
     end,
@@ -201,7 +184,7 @@ settings:Button({
 
 settings:Button({
     Title = "Show Summary",
-    Desc = "Preview a few live values from the showcase state.",
+    Desc = "Preview current values.",
     Badge = "INFO",
     Callback = function()
         local profile = tostring(window:GetValue("Profile") or "Unknown")
@@ -216,5 +199,5 @@ settings:Button({
 
 window:Notify({
     Title = "BloomUI Loaded",
-    Content = "RightControl toggles the window. The showcase now opens with hero panels, bigger text, and a cleaner hub flow.",
+    Content = "Press RightControl to toggle the window.",
 })
